@@ -17,7 +17,7 @@ export const notification_consumer = kafka.consumer({
 
   export const consumeNotification = async () => {
     try {
-      await database().connect()
+   
       await notification_consumer.connect();
       await notification_consumer.subscribe({ topics: ["notification-new","notification-others"] }); // handle messages collection in mongodb
 

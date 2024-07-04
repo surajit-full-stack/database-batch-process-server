@@ -39,14 +39,7 @@ class Notification {
   constructor() {
     this.connect();
   }
-  async connect() {
-    try {
-      await mongoose.connect(process.env.MONGO_URL_NOTIFICATION)
-      console.log("Connected to Mongo DB", 30, 42);
-    } catch (error) {
-      console.log("error", error);
-    }
-  }
+
   async addgroupNotification(socketref, notification) {
     try {
       const { time = moment() } = notification;

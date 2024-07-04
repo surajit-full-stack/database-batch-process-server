@@ -9,32 +9,36 @@ const MessageSchema = new mongose.Schema({
   id: String,
   status: String,
   conversation_id: {
-    type: String
+    type: String,
   },
 });
 
 const Message = mongose.model("Message", MessageSchema);
 
 class ChatDb {
-  async connect() {
-    try {
-      await mongose.connect(process.env.MONGO_URL_CHAT);
-      console.log("connected to CHAT DB");
-    } catch (error) {
-      console.log("error", error);
-    }
-  }
 
   async addChats(chats) {
     // []{senderName, receiverName, text, time, status, id}
 
     try {
       console.log("chats", chats);
-     
+
       await Message.insertMany(chats);
       console.log("added");
     } catch (error) {
-      console.log("error", error);
+      console.log(" batch error", error);
+    }
+  }
+
+  async deliveredStatusUpdate(receiverName) {
+    try {
+      const data = await Message.updateMany(
+        { receiverName, status: "offline" },
+        { status: "sent" }
+      );
+      console.log("updated", data);
+    } catch (error) {
+      console.log('error', error)
     }
   }
 }
