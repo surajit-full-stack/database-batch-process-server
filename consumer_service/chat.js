@@ -13,8 +13,13 @@ const chat_consumer = kafka.consumer({
   minBytes: 1024 * 1024, //? wait for 1 megabyte data to produced
   maxWaitTimeInMs: 10000, //? consume data at 10 sec interval
 });
+
+
 const sent_status_consumer = kafka.consumer({
   groupId: "sent-status-group",
+});
+const seen_status_consumer = kafka.consumer({
+  groupId: "seen-status-group",
 });
 export const consumeChats = async () => {
   try {
@@ -23,7 +28,6 @@ export const consumeChats = async () => {
 
     await chat_consumer.run({
       eachBatch: async ({ batch, resolveOffset, heartbeat }) => {
-        console.log(batch.messages.length + " new chat");
         // bulk insert payload => batch.messages.map((it) => JSON.parse(it.value))
         try {
           await database().addChats(
@@ -54,6 +58,24 @@ export const consumeUserJoinedChatServer = async () => {
           value: message.value.toString(),
         });
         await database().deliveredStatusUpdate(message.value.toString());
+      },
+    });
+  } catch (error) {
+    console.log('error', error)
+  }
+};
+export const consumeUserSeenMsg = async () => {
+  try {
+    await seen_status_consumer.connect();
+    await seen_status_consumer.subscribe({ topics: ["seen-msg-db-write"] });
+    await seen_status_consumer.run({
+      eachMessage: async ({ topic, partition, message }) => {
+        const packet = JSON.parse(message.value)
+       
+        console.log(
+          packet
+        ,"user seen handle");
+        await database().seenStatusUpdate(packet);
       },
     });
   } catch (error) {

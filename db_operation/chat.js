@@ -16,7 +16,6 @@ const MessageSchema = new mongose.Schema({
 const Message = mongose.model("Message", MessageSchema);
 
 class ChatDb {
-
   async addChats(chats) {
     // []{senderName, receiverName, text, time, status, id}
 
@@ -38,7 +37,19 @@ class ChatDb {
       );
       console.log("updated", data);
     } catch (error) {
-      console.log('error', error)
+      console.log("error", error);
+    }
+  }
+  async seenStatusUpdate(parties) {
+    const { reciverName, senderName } = parties;
+    try {
+      const data = await Message.updateMany(
+        { receiverName: reciverName, senderName, status: { $ne: "offline" } },
+        { status: "seen" }
+      );
+      console.log(" seen updated", data);
+    } catch (error) {
+      console.log("error", error);
     }
   }
 }
