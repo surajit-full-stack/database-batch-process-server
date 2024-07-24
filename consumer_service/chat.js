@@ -29,6 +29,7 @@ export const consumeChats = async () => {
     await chat_consumer.run({
       eachBatch: async ({ batch, resolveOffset, heartbeat }) => {
         // bulk insert payload => batch.messages.map((it) => JSON.parse(it.value))
+        console.log('\n soup \n')
         try {
           await database().addChats(
             batch.messages.map((it) => JSON.parse(it.value))
