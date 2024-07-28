@@ -11,16 +11,23 @@ const kafka = new Kafka({
 const chat_consumer = kafka.consumer({
   groupId: "chat-group",
   minBytes: 1024 * 1024, //? wait for 1 megabyte data to produced
-  maxWaitTimeInMs: 10000, //? consume data at 10 sec interval
+  maxWaitTimeInMs: 3000, //? consume data at 3 sec interval
 });
 
-
+// when user enter chat app first time
 const sent_status_consumer = kafka.consumer({
   groupId: "sent-status-group",
 });
+
 const seen_status_consumer = kafka.consumer({
   groupId: "seen-status-group",
 });
+
+// when user already online
+const sent_ack_consumer = kafka.consumer({
+  groupId: "sent-ack-group",
+});
+
 export const consumeChats = async () => {
   try {
     await chat_consumer.connect();
@@ -29,15 +36,16 @@ export const consumeChats = async () => {
     await chat_consumer.run({
       eachBatch: async ({ batch, resolveOffset, heartbeat }) => {
         // bulk insert payload => batch.messages.map((it) => JSON.parse(it.value))
-        console.log('\n soup \n')
+
         try {
+          console.log("Batch : ", batch.messages.length);
+
           await database().addChats(
             batch.messages.map((it) => JSON.parse(it.value))
           );
           // resolveOffset(batch.lastOffset);
           await heartbeat();
         } catch (error) {
-          console.log("dbbbb");
           throw error;
         }
       },
@@ -53,16 +61,12 @@ export const consumeUserJoinedChatServer = async () => {
     await sent_status_consumer.subscribe({ topics: ["user-online-status"] });
     await sent_status_consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
-        console.log({
-          partition,
-          offset: message.offset,
-          value: message.value.toString(),
-        });
-        await database().deliveredStatusUpdate(message.value.toString());
+        const { userId } = JSON.parse(message.value);
+        await database().deliveredStatusUpdate(userId);
       },
     });
   } catch (error) {
-    console.log('error', error)
+    console.log("Error:\n", error);
   }
 };
 export const consumeUserSeenMsg = async () => {
@@ -71,15 +75,27 @@ export const consumeUserSeenMsg = async () => {
     await seen_status_consumer.subscribe({ topics: ["seen-msg-db-write"] });
     await seen_status_consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
-        const packet = JSON.parse(message.value)
-       
-        console.log(
-          packet
-        ,"user seen handle");
+        const packet = JSON.parse(message.value);
+
         await database().seenStatusUpdate(packet);
       },
     });
   } catch (error) {
-    console.log('error', error)
+    console.log("Error:\n", error);
+  }
+};
+export const consumeSentAck = async () => {
+  try {
+    await sent_ack_consumer.connect();
+    await sent_ack_consumer.subscribe({ topics: ["ACK"] });
+    await sent_ack_consumer.run({
+      eachMessage: async ({ topic, partition, message }) => {
+        const { id } = JSON.parse(message.value);
+
+        if (id) await database().markChatAsSentById(id);
+      },
+    });
+  } catch (error) {
+    console.log("Error:\n", error);
   }
 };

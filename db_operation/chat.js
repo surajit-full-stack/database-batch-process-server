@@ -35,9 +35,8 @@ class ChatDb {
         { receiverName, status: "offline" },
         { status: "sent" }
       );
-      console.log("updated", data);
     } catch (error) {
-      console.log("error", error);
+      console.log("Error :\n", error);
     }
   }
   async seenStatusUpdate(parties) {
@@ -50,6 +49,13 @@ class ChatDb {
       console.log(" seen updated", data);
     } catch (error) {
       console.log("error", error);
+    }
+  }
+  async markChatAsSentById(id) {
+    try {
+      const data = await Message.updateOne({ id }, { status: "sent" });
+    } catch (error) {
+      console.log("Error :\n", error);
     }
   }
 }
